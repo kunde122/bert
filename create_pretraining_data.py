@@ -432,6 +432,20 @@ def truncate_seq_pair(tokens_a, tokens_b, max_num_tokens, rng):
     else:
       trunc_tokens.pop()
 
+def set_flags(flags):
+  BERT_BASE_DIR='../chinese_L-12_H-768_A-12'
+  import os
+  print(os.path.abspath(BERT_BASE_DIR))
+  flags.input_file='./sample_text.txt'
+  flags.output_file='tmp/tf_examples.tfrecord'
+  flags.vocab_file=BERT_BASE_DIR+'/vocab.txt'
+  flags.do_lower_case=True
+  flags.max_seq_length=128
+  flags.max_predictions_per_seq=20
+  flags.masked_lm_prob=0.15
+  flags.random_seed=12345
+  flags.dupe_factor=5
+  return flags
 
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
@@ -466,4 +480,5 @@ if __name__ == "__main__":
   flags.mark_flag_as_required("input_file")
   flags.mark_flag_as_required("output_file")
   flags.mark_flag_as_required("vocab_file")
+  flags.FLAGS=set_flags(flags.FLAGS)
   tf.app.run()

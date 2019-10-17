@@ -373,6 +373,46 @@ class ColaProcessor(DataProcessor):
           InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
     return examples
 
+class SsProcessor(DataProcessor):
+  """Processor for the CoLA data set (GLUE version)."""
+
+  def get_train_examples(self, data_dir):
+    """See base class."""
+    return self._create_examples(
+        self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
+
+  def get_dev_examples(self, data_dir):
+    """See base class."""
+    return self._create_examples(
+        self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
+
+  def get_test_examples(self, data_dir):
+    """See base class."""
+    return self._create_examples(
+        self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
+
+  def get_labels(self):
+    """See base class."""
+    return ["0", "1"]
+
+  def _create_examples(self, lines, set_type):
+    """Creates examples for the training and dev sets."""
+    examples = []
+    for (i, line) in enumerate(lines):
+      # Only the test set has a header
+      if set_type == "test" and i == 0:
+        continue
+      guid = "%s-%s" % (set_type, i)
+      if set_type == "test":
+        text_a = tokenization.convert_to_unicode(line[1])
+        label = "0"
+      else:
+        text_a = tokenization.convert_to_unicode(line[0])
+        label = tokenization.convert_to_unicode(line[1])
+      examples.append(
+          InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+    return examples
+
 
 def convert_single_example(ex_index, example, label_list, max_seq_length,
                            tokenizer):
@@ -475,7 +515,6 @@ def convert_single_example(ex_index, example, label_list, max_seq_length,
       is_real_example=True)
   return feature
 
-
 def file_based_convert_examples_to_features(
     examples, label_list, max_seq_length, tokenizer, output_file):
   """Convert a set of `InputExample`s to a TFRecord file."""
@@ -541,6 +580,8 @@ def file_based_input_fn_builder(input_file, seq_length, is_training,
     d = tf.data.TFRecordDataset(input_file)
     if is_training:
       d = d.repeat()
+      #每次从数据源中按顺序取buffer_size个样本，并打乱。
+      # 每次从中取一个样本放入batch中，填充buffer_size，。。。，直至达到batchsize
       d = d.shuffle(buffer_size=100)
 
     d = d.apply(
@@ -779,6 +820,45 @@ def convert_examples_to_features(examples, label_list, max_seq_length,
     features.append(feature)
   return features
 
+def set_flags(flags):
+
+    BERT_BASE_DIR='../uncased_L-12_H-768_A-12'
+    print(os.path.abspath(BERT_BASE_DIR))
+    GLUE_DIR='glue_data'
+
+    flags.task_name='MRPC'
+    flags.do_train=True
+    flags.do_eval=True
+    flags.data_dir=GLUE_DIR+'/MRPC'
+    flags.vocab_file=BERT_BASE_DIR+'/vocab.txt'
+    flags.bert_config_file=BERT_BASE_DIR+'/bert_config.json'
+    flags.init_checkpoint=BERT_BASE_DIR+'/bert_model.ckpt'
+    flags.max_seq_length=128
+    flags.train_batch_size=32
+    flags.learning_rate=2e-5
+    flags.num_train_epochs=3.0
+    flags.output_dir='tmp/mrpc_output/'
+    return flags
+
+def set_flags_ss(flags):
+
+    BERT_BASE_DIR='../chinese_L-12_H-768_A-12'
+    print(os.path.abspath(BERT_BASE_DIR))
+    GLUE_DIR='my_data'
+
+    flags.task_name='ssadr'
+    flags.do_train=True
+    flags.do_eval=True
+    flags.data_dir=GLUE_DIR
+    flags.vocab_file=BERT_BASE_DIR+'/vocab.txt'
+    flags.bert_config_file=BERT_BASE_DIR+'/bert_config.json'
+    flags.init_checkpoint=BERT_BASE_DIR+'/bert_model.ckpt'
+    flags.max_seq_length=128
+    flags.train_batch_size=32
+    flags.learning_rate=2e-5
+    flags.num_train_epochs=3.0
+    flags.output_dir='tmp/ss_output/'
+    return flags
 
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
@@ -788,6 +868,7 @@ def main(_):
       "mnli": MnliProcessor,
       "mrpc": MrpcProcessor,
       "xnli": XnliProcessor,
+      "ssadr":SsProcessor,
   }
 
   tokenization.validate_case_matches_checkpoint(FLAGS.do_lower_case,
@@ -978,4 +1059,5 @@ if __name__ == "__main__":
   flags.mark_flag_as_required("vocab_file")
   flags.mark_flag_as_required("bert_config_file")
   flags.mark_flag_as_required("output_dir")
+  flags.FLAGS = set_flags_ss(flags.FLAGS)
   tf.app.run()
