@@ -406,23 +406,53 @@ def embedding_lookup(input_ids,
   if input_ids.shape.ndims == 2:
     input_ids = tf.expand_dims(input_ids, axis=[-1])
 
-  embedding_table = tf.get_variable(
-      name=word_embedding_name,
-      shape=[vocab_size, embedding_size],
+  embedding_table1 = tf.get_variable(
+      name='word_embeddings1',
+      shape=[22, embedding_size/4],
+      initializer=create_initializer(initializer_range))
+  embedding_table2 = tf.get_variable(
+      name='word_embeddings2',
+      shape=[23, embedding_size/4],
+      initializer=create_initializer(initializer_range))
+  embedding_table3 = tf.get_variable(
+      name='word_embeddings3',
+      shape=[7, embedding_size/4],
+      initializer=create_initializer(initializer_range))
+  embedding_table4 = tf.get_variable(
+      name='word_embeddings4',
+      shape=[8, embedding_size/4],
       initializer=create_initializer(initializer_range))
 
+  embedding_tables=[embedding_table1,embedding_table2,embedding_table3,embedding_table4]
+  # tmp = tf.map_fn(lambda input: tf.gather(input, 0), embedding_tables,dtype=tf.float32)
+  #(batch_size*seq_len,)
   flat_input_ids = tf.reshape(input_ids, [-1])
-  if use_one_hot_embeddings:
-    one_hot_input_ids = tf.one_hot(flat_input_ids, depth=vocab_size)
-    output = tf.matmul(one_hot_input_ids, embedding_table)
-  else:
-    output = tf.gather(embedding_table, flat_input_ids)
+  print(type(flat_input_ids))
+
+  def split_ind(line):
+      squares = tf.string_split([line], '-')
+      inds=tf.slice(squares.values, [0], [4])
+      # inds=tf.constant(['1', '2', '3', '4'])
+      tmp=[]
+      for i in range(4):
+
+          id=tf.gather(inds,i)
+
+          tmp.append(tf.gather(embedding_tables[i],tf.to_int32(tf.string_to_number(id))))
+
+      # tmp=tf.map_fn(lambda input:tf.gather(input[1], tf.to_int32(input[0])),(squares.values,embedding_tables))
+      # tmp = tf.map_fn(lambda input: tf.gather(input, [tf.to_int32('0')]), embedding_tables)
+      return tf.concat(tmp,0)
+
+  output = tf.map_fn(split_ind, flat_input_ids,dtype=tf.float32)
+  # tmp=tf.gather(embedding_tables[0],tf.to_int32(tf.string_to_number('1')))
+  # output = tf.map_fn(lambda x:tf.concat([tmp]*4,0),flat_input_ids,dtype=tf.float32)
 
   input_shape = get_shape_list(input_ids)
 
   output = tf.reshape(output,
                       input_shape[0:-1] + [input_shape[-1] * embedding_size])
-  return (output, embedding_table)
+  return (output, embedding_tables)
 
 
 def embedding_postprocessor(input_tensor,

@@ -118,7 +118,7 @@ def printable_text(text):
     raise ValueError("Not running on Python2 or Python 3?")
 
 
-def load_vocab(vocab_file):
+def load_vocab0(vocab_file):
   """Loads a vocabulary file into a dictionary."""
   vocab = collections.OrderedDict()
   index = 0
@@ -132,6 +132,52 @@ def load_vocab(vocab_file):
       index += 1
   return vocab
 
+def load_vocab1(vocab_file):
+  """Loads a vocabulary file into a dictionary."""
+
+  base_dir = '/Users/user/code/bert/voice_keys_check/'
+  out_path = base_dir + 'hanzi_sc_to_id.json'
+  import json
+  sc_word_dic = json.load(open(out_path))
+
+
+  vocab = collections.OrderedDict()
+  index = 0
+  with tf.gfile.GFile(vocab_file, "r") as reader:
+    while True:
+      token = convert_to_unicode(reader.readline())
+      if not token:
+        break
+      token = token.strip()
+      if sc_word_dic[token] in vocab :
+        vocab[token]=vocab[sc_word_dic[token]]
+      else:
+        vocab[token] = index
+      index += 1
+  return vocab
+
+def load_vocab(vocab_file):
+  """Loads a vocabulary file into a dictionary."""
+
+  # base_dir = '/Users/user/code/bert/voice_keys_check/'
+  # out_path = base_dir + 'hanzi_sc_to_id.json'
+  # import json
+  # sc_word_dic = json.load(open(out_path))
+  vocab_file='/Users/user/code/my_bert/voice_keys_check/hanzi_sc_res.dic'
+
+
+  vocab = collections.OrderedDict()
+  index = 0
+  with tf.gfile.GFile(vocab_file, "r") as reader:
+    while True:
+      token = convert_to_unicode(reader.readline())
+      if not token:
+        break
+      if len(token) == 0:
+        continue
+      word,ind=token.strip().split()
+      vocab[word] =ind
+  return vocab
 
 def convert_by_vocab(vocab, items):
   """Converts a sequence of [tokens|ids] using the vocab."""
