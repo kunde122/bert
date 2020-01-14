@@ -404,7 +404,10 @@ def embedding_lookup(input_ids,
   # If the input is a 2D tensor of shape [batch_size, seq_length], we
   # reshape to [batch_size, seq_length, 1].
   if input_ids.shape.ndims == 2:
-    input_ids = tf.expand_dims(input_ids, axis=[-1])
+    # input_ids = tf.expand_dims(input_ids, axis=[-1])
+    shape=input_ids.shape
+    #(8,128,4)
+    input_ids=tf.reshape(input_ids, [shape[0],tf.floordiv(shape[1],4),4])
 
   embedding_table1 = tf.get_variable(
       name='word_embeddings1',
@@ -424,34 +427,45 @@ def embedding_lookup(input_ids,
       initializer=create_initializer(initializer_range))
 
   embedding_tables=[embedding_table1,embedding_table2,embedding_table3,embedding_table4]
+
+
+
   # tmp = tf.map_fn(lambda input: tf.gather(input, 0), embedding_tables,dtype=tf.float32)
   #(batch_size*seq_len,)
-  flat_input_ids = tf.reshape(input_ids, [-1])
+  flat_input_ids = tf.reshape(input_ids, [-1,4])
+  tmp=[]
+  for i in range(4):
+    tmp.append(tf.gather(embedding_tables[i],flat_input_ids[:,i]))
+  output=tf.concat(tmp, -1)
+
+
+
   print(type(flat_input_ids))
 
-  def split_ind(line):
-      squares = tf.string_split([line], '-')
-      inds=tf.slice(squares.values, [0], [4])
-      # inds=tf.constant(['1', '2', '3', '4'])
-      tmp=[]
-      for i in range(4):
+  # def split_ind(line):
+  #     # squares = tf.string_split([line], '-')
+  #     # inds=tf.slice(squares.values, [0], [4])
+  #     # inds=tf.constant(['1', '2', '3', '4'])
+  #     tmp=[tf.gather(embedding_tables[0],)]
+  #     for i in range(4):
+  #
+  #
+  #         id=0
+  #
+  #         tmp.append(gdf)
+  #     # tf.to_int32(tf.string_to_number
+  #     # tmp=tf.map_fn(lambda input:tf.gather(input[1], tf.to_int32(input[0])),(squares.values,embedding_tables))
+  #     # tmp = tf.map_fn(lambda input: tf.gather(input[0], input[1]), (embedding_tables,line),dtype=tf.float32)
+  #     return tf.concat(tmp,0)
 
-          id=tf.gather(inds,i)
-
-          tmp.append(tf.gather(embedding_tables[i],tf.to_int32(tf.string_to_number(id))))
-
-      # tmp=tf.map_fn(lambda input:tf.gather(input[1], tf.to_int32(input[0])),(squares.values,embedding_tables))
-      # tmp = tf.map_fn(lambda input: tf.gather(input, [tf.to_int32('0')]), embedding_tables)
-      return tf.concat(tmp,0)
-
-  output = tf.map_fn(split_ind, flat_input_ids,dtype=tf.float32)
+  # output = tf.map_fn(split_ind, flat_input_ids,dtype=tf.float32)
   # tmp=tf.gather(embedding_tables[0],tf.to_int32(tf.string_to_number('1')))
   # output = tf.map_fn(lambda x:tf.concat([tmp]*4,0),flat_input_ids,dtype=tf.float32)
 
   input_shape = get_shape_list(input_ids)
 
   output = tf.reshape(output,
-                      input_shape[0:-1] + [input_shape[-1] * embedding_size])
+                      input_shape[0:-1] + [ embedding_size])
   return (output, embedding_tables)
 
 
@@ -563,7 +577,7 @@ def create_attention_mask_from_input_mask(from_tensor, to_mask):
   """
   from_shape = get_shape_list(from_tensor, expected_rank=[2, 3])
   batch_size = from_shape[0]
-  from_seq_length = from_shape[1]
+  from_seq_length = tf.floordiv(from_shape[1],4)
 
   to_shape = get_shape_list(to_mask, expected_rank=2)
   to_seq_length = to_shape[1]

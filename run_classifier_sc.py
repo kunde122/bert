@@ -488,7 +488,7 @@ def convert_single_example(ex_index, example, label_list, max_seq_length,
   input_mask = [1] * len(input_ids)
 
   # Zero-pad up to the sequence length.
-  zero_str = '0-0-0-0'
+  zero_str = [0,0,0,0]
   while len(input_ids) < max_seq_length:
     input_ids.append(zero_str)
     input_mask.append(0)
@@ -533,10 +533,10 @@ def file_based_convert_examples_to_features(
     def create_int_feature(values):
       f = tf.train.Feature(int64_list=tf.train.Int64List(value=list(values)))
       return f
-
+    tmp=sum(feature.input_ids, [])
     features = collections.OrderedDict()
-    # features["input_ids"] = create_int_feature(feature.input_ids)
-    features["input_ids"]= tf.train.Feature(bytes_list=tf.train.BytesList(value=list([val.encode('utf-8') for val in feature.input_ids])))
+    features["input_ids"] = create_int_feature(tmp)
+    # features["input_ids"]= tf.train.Feature(bytes_list=tf.train.BytesList(value=list([val.encode('utf-8') for val in feature.input_ids])))
     features["input_mask"] = create_int_feature(feature.input_mask)
     features["segment_ids"] = create_int_feature(feature.segment_ids)
     features["label_ids"] = create_int_feature([feature.label_id])
@@ -553,7 +553,7 @@ def file_based_input_fn_builder(input_file, seq_length, is_training,
   """Creates an `input_fn` closure to be passed to TPUEstimator."""
 
   name_to_features = {
-      "input_ids": tf.FixedLenFeature([seq_length], tf.string),
+      "input_ids": tf.FixedLenFeature([4*seq_length], tf.int64),
       "input_mask": tf.FixedLenFeature([seq_length], tf.int64),
       "segment_ids": tf.FixedLenFeature([seq_length], tf.int64),
       "label_ids": tf.FixedLenFeature([], tf.int64),
@@ -570,6 +570,10 @@ def file_based_input_fn_builder(input_file, seq_length, is_training,
       t = example[name]
       if t.dtype == tf.int64:
         t = tf.to_int32(t)
+      # if name=="input_ids":
+      #     codes=t.split('-')
+      #     codes=[int(code) for code in codes]
+      #     t=codes
       example[name] = t
 
     return example
@@ -866,7 +870,7 @@ def set_flags_ss(flags):
     flags.bert_config_file=BERT_BASE_DIR+'/bert_config.json'
     # flags.init_checkpoint=BERT_BASE_DIR+'/bert_model.ckpt'
     # flags.init_checkpoint = '/Users/user/code/bert/voice_keys_check/models' + '/model.ckpt-1000'
-    flags.init_checkpoint = '/Users/user/code/my_bert/voice_keys_check/tmp/ss_output' + '/model.ckpt-375'
+    # flags.init_checkpoint = '/Users/user/code/my_bert/voice_keys_check/tmp/ss_output' + '/model.ckpt-375'
     flags.max_seq_length=128
     flags.train_batch_size=8
     flags.learning_rate=2e-5
@@ -1159,7 +1163,7 @@ def infer():
       return prob,predictions[0][0]
   return pred
 flags.FLAGS = set_flags_ss(flags.FLAGS)
-addr_predict=infer()
+# addr_predict=infer()
 
 
 if __name__ == "__main__":
@@ -1170,8 +1174,8 @@ if __name__ == "__main__":
   flags.mark_flag_as_required("output_dir")
   flags.FLAGS = set_flags_ss(flags.FLAGS)
   # infer()
-  import time
-  start=time.time()
-  addr_predict('喂，你好。喂，你几点能到阳光都市？马上到，再有个几分钟就到。几分钟，好。？')
-  print(time.time()-start)
-  # tf.app.run()
+  # import time
+  # start=time.time()
+  # addr_predict('喂，你好。喂，你几点能到阳光都市？马上到，再有个几分钟就到。几分钟，好。？')
+  # print(time.time()-start)
+  tf.app.run()
