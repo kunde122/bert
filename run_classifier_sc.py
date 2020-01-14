@@ -866,6 +866,7 @@ def set_flags_ss(flags):
     flags.bert_config_file=BERT_BASE_DIR+'/bert_config.json'
     # flags.init_checkpoint=BERT_BASE_DIR+'/bert_model.ckpt'
     # flags.init_checkpoint = '/Users/user/code/bert/voice_keys_check/models' + '/model.ckpt-1000'
+    flags.init_checkpoint = '/Users/user/code/my_bert/voice_keys_check/tmp/ss_output' + '/model.ckpt-375'
     flags.max_seq_length=128
     flags.train_batch_size=8
     flags.learning_rate=2e-5
@@ -960,12 +961,14 @@ def main(_):
 
   if FLAGS.do_train:
     train_file = os.path.join(FLAGS.output_dir, "train.tf_record")
+    #储存为train.tf_record
     file_based_convert_examples_to_features(
         train_examples, label_list, FLAGS.max_seq_length, tokenizer, train_file)
     tf.logging.info("***** Running training *****")
     tf.logging.info("  Num examples = %d", len(train_examples))
     tf.logging.info("  Batch size = %d", FLAGS.train_batch_size)
     tf.logging.info("  Num steps = %d", num_train_steps)
+    #从train.tf_record中解析
     train_input_fn = file_based_input_fn_builder(
         input_file=train_file,
         seq_length=FLAGS.max_seq_length,
@@ -1122,7 +1125,7 @@ def infer():
   predict_examples = processor.get_test_examples(FLAGS.data_dir)
   num_actual_predict_examples = len(predict_examples)
 
-  input_ids=tf.placeholder(tf.int32, [None,FLAGS.max_seq_length])
+  input_ids=tf.placeholder(tf.string, [None,FLAGS.max_seq_length])
   input_mask = tf.placeholder(tf.int32, [None,FLAGS.max_seq_length])
   segment_ids = tf.placeholder(tf.int32, [None,FLAGS.max_seq_length])
   label_ids=tf.placeholder(tf.int32, [None,1])
@@ -1156,7 +1159,7 @@ def infer():
       return prob,predictions[0][0]
   return pred
 flags.FLAGS = set_flags_ss(flags.FLAGS)
-# addr_predict=infer()
+addr_predict=infer()
 
 
 if __name__ == "__main__":
@@ -1167,8 +1170,8 @@ if __name__ == "__main__":
   flags.mark_flag_as_required("output_dir")
   flags.FLAGS = set_flags_ss(flags.FLAGS)
   # infer()
-  # import time
-  # start=time.time()
-  # addr_predict('北京现在过得取钱啊，哦，我是山东啊，你这个预约的750到是吧？啊，那也行啊闪送')
-  # print(time.time()-start)
-  tf.app.run()
+  import time
+  start=time.time()
+  addr_predict('喂，你好。喂，你几点能到阳光都市？马上到，再有个几分钟就到。几分钟，好。？')
+  print(time.time()-start)
+  # tf.app.run()
